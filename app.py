@@ -1,11 +1,13 @@
 import streamlit as st
 import requests
+from config import Config
 
 
 def main():
     st.title('Reel Charts')
 
     st.sidebar.title('Charts')
+    # Sidebar options
     selected_option = st.sidebar.selectbox("Select a chart", ["Home", "Box Office", "Upcoming Movies"])
 
     def get_movies(filter_type, release_year=None, search_query=None):
@@ -23,13 +25,14 @@ def main():
 
         headers = {
             "accept": "application/json",
-            "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIwOTVlNzIxYjA5ZWFkZjZjMTJjNzU5OTU1M2QyZDAyNiIsInN1YiI6IjY0NDA2MDljYzk5NWVlMDUzNjdjNWM5YyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.OP6U2o7e-MhiswrP8csW80J6a7yr5Z9LBU1bWoSHCv8"
+            "Authorization": f"Bearer {Config.API_KEY}"
         }
 
         response = requests.get(url, headers=headers)
         data = response.json()
         return data['results']
 
+    # home page filters
     if selected_option == 'Home':
         filter_type = st.radio('What movies would you like to see?',
                                ['Popular', 'Now Playing', 'Top Rated', 'Upcoming'])
@@ -47,6 +50,7 @@ def main():
 
         columns = st.columns(3)
 
+        # creates home page columns with movie posters
         for i, movie in enumerate(movies):
             with columns[i % 3]:
                 poster_url = f'https://image.tmdb.org/t/p/w200{movie["poster_path"]}'
