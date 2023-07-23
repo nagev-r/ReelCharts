@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 from config import Config
+import pandas as pd
 
 
 def main():
@@ -8,7 +9,8 @@ def main():
 
     st.sidebar.title('Charts')
     # Sidebar options
-    selected_option = st.sidebar.selectbox("Select a chart", ["Home", "Box Office", "Upcoming Movies"])
+    selected_option = st.sidebar.selectbox("Select a chart",
+                                           ["Home", "Box Office", "Upcoming Movies", "Popularity Chart"])
 
     def get_movies(filter_type, release_year=None, search_query=None):
         filters = {
@@ -56,6 +58,33 @@ def main():
                 poster_url = f'https://image.tmdb.org/t/p/w200{movie["poster_path"]}'
                 st.image(poster_url, width=200)
                 st.write(movie['title'])
+
+    if selected_option == 'Popularity Chart':
+        movies = get_movies('Popular')
+        if movies:
+            # Create horizontal bar chart
+            movie_titles = [movie['title'] for movie in movies]
+            movie_popularity = [movie['popularity'] for movie in movies]
+            # Rescale popularity to a range of 1 to 10
+            min_popularity = min(movie_popularity)
+            max_popularity = max(movie_popularity)
+            rescaled_popularity = [
+                1 + (popularity - min_popularity) * 9 / (max_popularity - min_popularity)
+                for popularity in movie_popularity
+            ]
+            chart_data = pd.DataFrame({'Movie': movie_titles, 'Popularity': rescaled_popularity})
+            chart_data = chart_data.nlargest(10, 'Popularity')  # Limit to top 10 movies
+            chart_data = chart_data.sort_values('Popularity', ascending=True)  # Sort in ascending order
+            chart_data = chart_data[::-1]  # Reverse the order of rows
+            st.header('Top 10 Current Movies by Popularity')
+
+            # Display horizontal bar chart
+            for index, row in chart_data.iterrows():
+                movie_info = st.empty()
+                popularity_bar = st.empty()
+                popularity_text = st.empty()
+                movie_info.text(f"{row['Movie']} ({row['Popularity']: .1f} / 10.0)")
+                popularity_bar.progress(row['Popularity'] / 10.0)
 
 
 if __name__ == '__main__':
