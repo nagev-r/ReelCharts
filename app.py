@@ -64,30 +64,40 @@ def main():
     # Gio code start
     if selected_option == "Movie Table":
 
-        release_year = st.number_input("Select by release year",min_value=1990, max_value=2023,
-                                       step=1, key='release_year_table')
+        #Movie seach name table
+        st.title("TMDB Movie Search")
 
+        TMDB_URL = "https://api.themoviedb.org/3/search/movie"
+        API_KEY = "9bc1882d52cb1a350bd25fb47aa8ff26"
 
-
-        df_movies = pd.DataFrame(
-            {
-                "Movie":["Name"],
-                "Image":["https://api.themoviedb.org/3/network/{network_id}/images"]
+        def fetch_movies(query):
+            params = {
+                'api_key': API_KEY,
+                'query': query
             }
-        )
 
-        # Use the new st.dataframe API to display the data frame
-        st.dataframe(
-            df_movies,
-            column_config={
-                "title": "Movie Title",
-                # Replace with correct prefix
-                "release_date": st.column_config.NumberColumn("Release Year"),
-                # Add other columns as needed
-                "movie_url": st.column_config.LinkColumn("Movie Details"),
-            },
-            hide_index=True,
-        )
+            response = requests.get(TMDB_URL, params=params)
+            data = response.json()
+
+            if data and 'results' in data:
+                return data['results']
+            else:
+                return []
+
+        query = st.text_input("Enter movie name:", value='').strip()
+
+        if query:
+            movies = fetch_movies(query)
+
+            if movies:
+                # Convert the results into a pandas DataFrame for display
+                df = pd.DataFrame(movies)
+                st.write(df[["title", "release_date", "overview", "popularity", "vote_average"]])
+                st.success(f'Data results for "{query}" ✅')
+            else:
+                ##t.write("No movies found!")
+                st.error(f'No movies found for "{query}" 🚨')
+
         # Gio Code end
 
 
