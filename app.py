@@ -86,6 +86,9 @@ def main():
             genres = None
 
         columns = st.columns(3)
+        genres = get_selected_genres()
+
+        movies = get_movies(filter_type, release_year, genres, search_query, vote_average_range)
 
         # creates home page columns with movie posters
         for i, movie in enumerate(movies):
