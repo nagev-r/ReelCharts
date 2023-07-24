@@ -51,7 +51,7 @@ def main():
 
     st.sidebar.title('Charts')
     # Sidebar options
-    selected_option = st.sidebar.selectbox("Select a chart", ["Home", "Box Office", "Upcoming Movies", "Movie Table"])
+    selected_option = st.sidebar.selectbox("Select a chart", ["Home", "Box Office", "Upcoming Movies", "Movie Table", "Map"])
 
     def get_selected_genres():
         all_genres = get_genres()
@@ -139,6 +139,54 @@ def main():
 
         # Gio Code end
 
+    # Nageline Code
+    if selected_option == "Map":
+        def get_movie_providers_by_country(country):
+            url = f'https://api.themoviedb.org/3/watch/providers/movie?watch_region={country}'
+            headers = {
+                "accept": "application/json",
+                "Authorization": f"Bearer {Config.API_KEY}"
+            }
+            response = requests.get(url, headers=headers)
+            data = response.json()
+            return data['results']
+
+        st.title('Movie Providers by Country')
+
+        # Input field to enter the country
+        country = st.text_input('Enter a country name or ISO code (e.g., "United States" or "US"):')
+
+        # Get movie providers
+        if country:
+            movie_providers = get_movie_providers_by_country(country)
+
+            if not movie_providers:
+                st.warning(f"No movie providers found for {country}.")
+            else:
+                st.header(f"Movie Providers in {country}:")
+                df = pd.DataFrame(movie_providers)
+                st.dataframe(df[['provider_name', 'provider_id']])
+
+                # Count the number of movie providers
+                num_providers = len(movie_providers)
+                st.write(f"Number of movie providers in {country}: {num_providers}")
+
+            # new shit
+            # Step 1: Read the CSV file
+            csv_file = 'countries.csv'
+            df = pd.read_csv(csv_file)
+
+            # Step 2: Create a Streamlit app
+            st.title('Country Map Viewer')
+
+            # Get the latitude and longitude for the selected country
+            latitude = df.loc[df['country'] == country, 'latitude'].values[0]
+            longitude = df.loc[df['country'] == country, 'longitude'].values[0]
+
+            # Display the selected country's location on the map
+            st.map(data=[[latitude, longitude]], zoom=5)
+
+            st.map(df)
 
 if __name__ == '__main__':
     main()
