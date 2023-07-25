@@ -7,6 +7,7 @@ import pandas as pd
 
 
 def get_genres():
+    # This gets the list of movies from the TMDB API
     url = "https://api.themoviedb.org/3/genre/movie/list?language=en-US"
     headers = {
         "accept": "application/json",
@@ -18,6 +19,7 @@ def get_genres():
 
 
 def get_box_office(movie_id):
+    # This gets the box office numbers from a specific movie
     url = f"https://api.themoviedb.org/3/movie/{movie_id}?language=en-US"
     headers = {
         "accept": "application/json",
@@ -29,6 +31,7 @@ def get_box_office(movie_id):
 
 
 def get_movies(filter_type, release_year=None, genres=None, search_query=None, vote_average_range=None):
+    # Maps filter types
     filters = {
         'Popular': 'popular',
         'Now Playing': 'now_playing',
@@ -36,13 +39,16 @@ def get_movies(filter_type, release_year=None, genres=None, search_query=None, v
         'Upcoming': 'upcoming'
     }
 
+    # Converts list of genres objects to list of genre ID
     genre_ids = [genre['id'] for genre in genres] if genres else None
     genre_query = f'&with_genres={",".join(str(id) for id in genre_ids)}' if genre_ids else ''
 
+    # If search query use search endPoint, else user filter endpoints
     if search_query:
         url = f"https://api.themoviedb.org/3/search/movie?language=en-US&query={search_query}&page=1"
     else:
         url = f"https://api.themoviedb.org/3/movie/{filters[filter_type]}?language=en-US&page=1{genre_query}"
+        # add filters
         if release_year:
             url += f"&year={release_year}"  # Add release year as a filter
         if vote_average_range:
@@ -52,7 +58,7 @@ def get_movies(filter_type, release_year=None, genres=None, search_query=None, v
         "accept": "application/json",
         "Authorization": f"Bearer {Config.API_KEY}"
     }
-
+    # Fetch movies from TMDB API
     response = requests.get(url, headers=headers)
     data = response.json()
     return data['results']
@@ -67,6 +73,8 @@ def main():
                                            ["Home", "Movie Table", "Popularity Chart", "Box Office Line Graph", "Map"])
 
     def get_selected_genres():
+        # Fetch genres
+        # This let user select
         all_genres = get_genres()
         genre_names = [genre['name'] for genre in all_genres]
         selected_genres = st.sidebar.multiselect('Select Genres', genre_names)
@@ -99,14 +107,33 @@ def main():
         columns = st.columns(3)
         genres = get_selected_genres()
 
+        # Fetch movies basef on the given filters
         movies = get_movies(filter_type, release_year, genres, search_query, vote_average_range)
 
-        # creates home page columns with movie posters
-        for i, movie in enumerate(movies):
-            with columns[i % 3]:
-                poster_url = f'https://image.tmdb.org/t/p/w200{movie["poster_path"]}'
-                st.image(poster_url, width=200)
-                st.write(movie['title'])
+        #if there is no movies found, an eroor will show
+        if not movies and search_query:
+            st.error(f'No movies found for the search query "{search_query}" 🚨')
+        else:
+            #This will display messages when the movie is found
+            if search_query:
+                st.success(f'Data results for "{search_query}" ✅')
+
+                # Path to the local placeholder image
+                placeholder_img_path = "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg"
+
+            # creates home page columns with movie posters
+            for i, movie in enumerate(movies):
+                with columns[i % 3]:
+                    if movie["poster_path"]:
+                        poster_url = f'https://image.tmdb.org/t/p/w200{movie["poster_path"]}'
+                    else:
+                        poster_url = placeholder_img_path
+
+                    st.image(poster_url, width=200)
+                    release_year = movie['release_date'].split('-')[0] if 'release_date' in movie and movie['release_date'] else "Unknown"
+                    st.write(f"{movie['title']} ({release_year})")
+
+                    #success when movie is found
 
     # Zach Code Start
     if selected_option == 'Popularity Chart':
@@ -172,6 +199,7 @@ def main():
     # Zach Code End
 
     # Gio code start
+    #This is where user select which page they want to be in
     if selected_option == "Movie Table":
 
         # Movie seach name table
@@ -181,21 +209,26 @@ def main():
         API_KEY = "9bc1882d52cb1a350bd25fb47aa8ff26"
 
         def fetch_movies(query):
+
+            # just defining the API Keys
             params = {
                 'api_key': API_KEY,
                 'query': query
             }
 
+            # This will make GET request to TMDB with query
             response = requests.get(TMDB_URL, params=params)
             data = response.json()
 
+            # This will check if the reponse contains movie results and it will return
             if data and 'results' in data:
                 return data['results']
             else:
                 return []
-
+        # User imput for the movie search
         query = st.text_input("Enter movie name:", value='').strip()
 
+        # This is where User types in a Movie
         if query:
             movies = fetch_movies(query)
 
@@ -204,6 +237,8 @@ def main():
                 df = pd.DataFrame(movies)
                 st.write(df[["title", "release_date", "overview", "popularity", "vote_average"]])
                 st.success(f'Data results for "{query}" ✅')
+
+            #If no movies are found, show an error message
             else:
                 ##t.write("No movies found!")
                 st.error(f'No movies found for "{query}" 🚨')
